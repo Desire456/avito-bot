@@ -1,0 +1,1 @@
+python avito_playwright.py
