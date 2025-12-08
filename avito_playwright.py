@@ -247,7 +247,6 @@ def main():
     min_views_str = input("Минимальное число просмотров? [0 = не проверять]: ") or "0"
     synonyms_text = input("Введите словарь синонимов (формат 'слово: синоним1, синоним2; ...'): ") or ""
     original_message = input("Введите исходный текст сообщения (можно использовать \\n для переноса строк): ")
-    profile_num_str = input("Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
 
     try:
         messages_count = int(messages_count_str)
@@ -302,26 +301,17 @@ def main():
                 print('Навожу на профиль пользователя.')
                 page.query_selector('[data-marker="header/username-button"]').hover()
 
+                profile_num_str = input("Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
+
                 random_sleep(1, 3)
                 print(f"Перехожу в указанный профиль: {profile_num_str}.")
                 profile_elems = page.query_selector_all('.styles-module-image-kPriT')
-                print(profile_elems)
                 profile_num = int(profile_num_str)
                 if profile_num < 0 or profile_num > len(profile_elems) - 1:
                   print("Указан неправильный номер профиля. Прекращаем работу.")
                   context.close()
                   return
                 profile_elems[profile_num].click()
-
-                # print("Скрипт будет ждать появления элемента Личные сообщения (data-marker=\"header/messenger\") "
-                #       "до 10 минут.\n")
-
-                # # Ждём появления элемента сообщений
-                # found = wait_for_messenger_element(page, timeout_minutes=10)
-                # if not found:
-                #     print("Элемент 'Сообщения' не найден за 10 минут. Прекращаем работу.")
-                #     context.close()
-                #     return
 
                 # Если найден, ждём рандом 5–7 сек, затем начинаем
                 random_sleep(5, 7)
@@ -425,7 +415,6 @@ def main():
 
                             if seller_element:
                                 seller_text = seller_element.get_attribute('href')
-                                print(f"Seller: {seller_text}")
                                 # Если имя скрыто троеточием
                                 # if seller_text == '...':
                                 #     # На последней попытке берём из title
