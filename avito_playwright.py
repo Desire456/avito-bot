@@ -177,6 +177,18 @@ def click_avito_logo(page):
     else:
         print("Не удалось найти элемент с логотипом Авито для клика.")
 
+def wait_for_unexisting_element(page, timeout_minutes=1):
+  total_seconds = timeout_minutes * 60
+  interval = 2
+  waited = 0
+  while waited < total_seconds:
+    el = page.query_selector('[data-marker="ChegoKrutie1337:)"]')
+    if el:
+      return True
+    time.sleep(interval)
+    waited += interval
+  return False
+
 def wait_for_messenger_element(page, timeout_minutes=10):
     """
     Ждём появления элемента Личные сообщения (селектор data-marker='header/messenger')
@@ -265,6 +277,7 @@ def main():
 
     # Папка профиля (для сохранения авторизации)
     user_data_dir = "avito_user_data"
+    is_retry = False
 
     # Начинаем работу в браузере
     while True:
@@ -297,25 +310,27 @@ def main():
                   context.close()
                   return
 
-                random_sleep(3, 5)
-                print('Навожу на профиль пользователя.')
-                page.query_selector('[data-marker="header/username-button"]').hover()
-
-                profile_num_str = input("Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
-
-                random_sleep(1, 3)
-                print(f"Перехожу в указанный профиль: {profile_num_str}.")
-                profile_elems = page.query_selector_all('.styles-module-image-kPriT')
-                profile_num = int(profile_num_str)
-                if profile_num < 0 or profile_num > len(profile_elems) - 1:
-                  print("Указан неправильный номер профиля. Прекращаем работу.")
-                  context.close()
-                  return
-                profile_elems[profile_num].click()
-
                 # Если найден, ждём рандом 5–7 сек, затем начинаем
                 random_sleep(5, 7)
                 print("Элемент сообщений найден. Начинаем основную логику.\n")
+
+                # print('Навожу на профиль пользователя.')
+                page.query_selector('[data-marker="header/username-button"]').hover()
+
+                if not is_retry:
+                  profile_num_str = input("Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
+
+                  random_sleep(1, 3)
+                  print(f"Перехожу в указанный профиль: {profile_num_str}.")
+                  # print('Навожу на профиль пользователя.')
+                  page.query_selector('[data-marker="header/username-button"]').hover()
+                  profile_elems = page.query_selector_all('.styles-module-image-kPriT')
+                  profile_num = int(profile_num_str)
+                  if profile_num < 0 or profile_num > len(profile_elems) - 1:
+                    print("Указан неправильный номер профиля. Прекращаем работу.")
+                    context.close()
+                    return
+                  profile_elems[profile_num].click()
 
                 # -----------------------------------------
                 # Главный цикл рассылки (пока не дошли до messages_count)
@@ -571,8 +586,9 @@ def main():
                         # Если достигли лимит — выходим
                         if sent_messages >= messages_count:
                             break
-                        print("Задержка 30-40 минут")
-                        random_sleep(1800, 2400)
+                        print("Задержка 20 минут")
+                        wait_for_unexisting_element(page, 20)
+                        # random_sleep(1800, 2400)
 
                     # Проверяем лимит
                     if sent_messages >= messages_count:
@@ -589,6 +605,7 @@ def main():
         except Exception as e:
             print(f"\nОШИБКА верхнего уровня: {e}")
             print("Перезапускаем скрипт... (данные processed_sellers и main_links в памяти сохраняются)\n")
+            is_retry = True
             # Если хотите, можно сделать sys.exit(1) или return,
             # но здесь оставлен перезапуск по требованию:
             continue
