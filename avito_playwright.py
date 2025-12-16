@@ -539,7 +539,7 @@ def main():
               print("Кнопка 'Написать' не найдена. Пропускаем объявление.")
               continue
 
-            write_btn.click()
+            write_btn.click(force=True)
             random_sleep(3, 5)
 
             # Переход к форме отправки сообщений
@@ -551,7 +551,7 @@ def main():
               button = page.query_selector(
                   '[data-marker="mini-messenger/messenger-page-link"]')
               if button:
-                button.click()
+                button.click(force=True)
                 random_sleep(5, 7)
             except:
               print(
@@ -563,7 +563,7 @@ def main():
                 wb2 = page.query_selector(
                     '[data-marker="messenger-button/button"]')
                 if wb2:
-                  wb2.click()
+                  wb2.click(force=True)
                   random_sleep(2, 3)
                 page.wait_for_selector(
                     '[data-marker="mini-messenger/messenger-page-link"]',
@@ -571,7 +571,7 @@ def main():
                 button = page.query_selector(
                     '[data-marker="mini-messenger/messenger-page-link"]')
                 if button:
-                  button.click()
+                  button.click(force=True)
                   random_sleep(2, 3)
               except:
                 print(
@@ -617,7 +617,7 @@ def main():
               send_btn = page.wait_for_selector('[data-marker="reply/send"]',
                                                 timeout=5000)
               random_sleep(5, 7)
-              send_btn.click()
+              send_btn.click(force=True)
               random_sleep(2, 3)
               sent_messages += 1
               processed_sellers.add(seller_id)
