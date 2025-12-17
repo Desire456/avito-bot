@@ -2,3 +2,5 @@ build/
 dist/
 .idea/
 avito_user_data/
+**/ads_links.txt
+**/seller_ids.txt

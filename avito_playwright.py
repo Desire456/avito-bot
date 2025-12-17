@@ -35,7 +35,7 @@ def parse_synonyms(synonyms_text):
     if ":" not in line:
       continue
     word_part, syn_part = line.split(":", 1)
-    base_word = word_part.strip().lower()
+    base_word = word_part.strip()
     synonyms = [s.strip() for s in syn_part.split(",") if s.strip()]
     if synonyms:
       result[base_word] = synonyms
@@ -43,17 +43,31 @@ def parse_synonyms(synonyms_text):
 
 
 def unique_message(original_text, synonyms_dict):
-  """Подстановка случайных синонимов вместо некоторых слов."""
-  words = original_text.split()
-  result_words = []
-  for w in words:
-    low = w.lower()
-    if low in synonyms_dict:
-      syn = random.choice(synonyms_dict[low])
-      result_words.append(syn)
-    else:
-      result_words.append(w)
-  return " ".join(result_words)
+  """Подстановка случайных синонимов вместо фраз (с учётом регистра)."""
+  result = original_text
+
+  # Сортируем фразы по длине (от длинных к коротким),
+  # чтобы сначала заменялись более длинные фразы
+  sorted_phrases = sorted(synonyms_dict.keys(), key=len, reverse=True)
+
+  replace = random.choice([True, False])
+  for phrase in sorted_phrases:
+    if not phrase:
+      continue
+
+    # Проверяем, есть ли фраза в тексте (с учётом регистра)
+    if phrase in result:
+      # Заменяем все вхождения фразы на случайный синоним
+      # Используем split/join для замены всех вхождений
+      parts = result.split(phrase)
+      # Если фраза найдена (количество частей > 1)
+      if len(parts) > 1 and replace:
+        # Выбираем один случайный синоним для всех вхождений
+        replacement = random.choice(synonyms_dict[phrase])
+        result = replacement.join(parts)
+    replace = not replace
+
+  return result
 
 
 def get_seller_id_from_page(page):
@@ -296,6 +310,11 @@ def main():
   # Папка профиля (для сохранения авторизации)
   user_data_dir = f"{user_id}/avito_user_data"
   is_retry = False
+
+  print(synonyms_dict)
+  print(unique_message(original_message, synonyms_dict))
+  print(unique_message(original_message, synonyms_dict))
+  print(unique_message(original_message, synonyms_dict))
 
   # Начинаем работу в браузере
   while True:
