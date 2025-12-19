@@ -311,371 +311,375 @@ def main():
   user_data_dir = f"{user_id}/avito_user_data"
   is_retry = False
 
-  print(synonyms_dict)
-  print(unique_message(original_message, synonyms_dict))
-  print(unique_message(original_message, synonyms_dict))
-  print(unique_message(original_message, synonyms_dict))
-
   # Начинаем работу в браузере
   while True:
-    try:
-      with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            user_data_dir=user_data_dir,
-            headless=False,
-            args=[f'--window-name={user_id}']
-        )
-        if context.pages:
-          page = context.pages[0]
-        else:
-          page = context.new_page()
+    with sync_playwright() as p:
+      try:
+          context = p.chromium.launch_persistent_context(
+              user_data_dir=user_data_dir,
+              headless=False,
+              args=[f'--window-name={user_id}']
+          )
+          if context.pages:
+            page = context.pages[0]
+          else:
+            page = context.new_page()
 
-        # Переходим на стартовую страницу (или восстанавливаемся)
-        try:
-          page.goto(start_url, timeout=60000, wait_until="domcontentloaded")
-        except Exception as e:
-          print(f"Не удалось загрузить {start_url}: {e}")
-          page.goto("https://www.avito.ru/", wait_until="domcontentloaded")
+          # Переходим на стартовую страницу (или восстанавливаемся)
+          try:
+            page.goto(start_url, timeout=60000, wait_until="domcontentloaded")
+          except Exception as e:
+            print(f"Не удалось загрузить {start_url}: {e}")
+            page.goto("https://www.avito.ru/", wait_until="domcontentloaded")
 
-        print("\nОткрылся браузер. Авторизуйтесь (если нужно).")
-        print(
-            "Скрипт будет ждать появления элемента Личные сообщения (data-marker=\"header/messenger\") "
-            "до 10 минут.\n")
-        found = wait_for_messenger_element(page, timeout_minutes=10)
-        if not found:
+          print("\nОткрылся браузер. Авторизуйтесь (если нужно).")
           print(
-              "Элемент 'Сообщения' не найден за 10 минут. Прекращаем работу.")
-          context.close()
-          return
-
-        # Если найден, ждём рандом 5–7 сек, затем начинаем
-        random_sleep(5, 7)
-        print("Элемент сообщений найден. Начинаем основную логику.\n")
-
-        # print('Навожу на профиль пользователя.')
-        page.query_selector('[data-marker="header/username-button"]').hover()
-
-        if not is_retry:
-          profile_num_str = input(
-              "Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
-
-          random_sleep(1, 3)
-          print(f"Перехожу в указанный профиль: {profile_num_str}.")
-          # print('Навожу на профиль пользователя.')
-          page.query_selector('[data-marker="header/username-button"]').hover()
-          profile_elems = page.query_selector_all('.styles-module-image-kPriT')
-          profile_num = int(profile_num_str)
-          if profile_num < 0 or profile_num > len(profile_elems) - 1:
-            print("Указан неправильный номер профиля. Прекращаем работу.")
+              "Скрипт будет ждать появления элемента Личные сообщения (data-marker=\"header/messenger\") "
+              "до 10 минут.\n")
+          found = wait_for_messenger_element(page, timeout_minutes=10)
+          if not found:
+            print(
+                "Элемент 'Сообщения' не найден за 10 минут. Прекращаем работу.")
             context.close()
             return
-          profile_elems[profile_num].click()
 
-        # -----------------------------------------
-        # Главный цикл рассылки (пока не дошли до messages_count)
-        # -----------------------------------------
-        while sent_messages < messages_count:
-          # 1) Проверяем, надо ли собирать новые ссылки
-          # если основной файл пуст или
-          # если current_link совпадает с последней ссылкой в main_links
-          try:
-            with open(CURRENT_LINK_FILE, 'r', encoding='utf-8') as cf:
-              current_link = cf.read().strip()  # Убираем лишние пробелы/переносы строк
-          except FileNotFoundError:
-            current_link = None  # Если файла нет, переменная остаётся пустой
+          # Если найден, ждём рандом 5–7 сек, затем начинаем
+          random_sleep(5, 7)
+          print("Элемент сообщений найден. Начинаем основную логику.\n")
 
-          need_collect = False
-          if len(main_links) == 0:
-            need_collect = True
-          else:
-            last_in_main = main_links[-1]
-            if current_link and (current_link == last_in_main):
-              need_collect = True
+          # print('Навожу на профиль пользователя.')
+          page.query_selector('[data-marker="header/username-button"]').hover(force = True)
 
-          if need_collect:
-            print(
-                "\n--- Сбор новых ссылок, так как достигнут конец основного файла (или он пуст). ---")
-            # Переходим на start_url (на всякий случай)
+          if not is_retry:
+            profile_num_str = input(
+                "Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
+
+            random_sleep(1, 3)
+            print(f"Перехожу в указанный профиль: {profile_num_str}.")
+            # print('Навожу на профиль пользователя.')
+            page.query_selector('[data-marker="header/username-button"]').hover()
+            profile_elems = page.query_selector_all('.styles-module-image-kPriT')
+            profile_num = int(profile_num_str)
+            if profile_num < 0 or profile_num > len(profile_elems) - 1:
+              print("Указан неправильный номер профиля. Прекращаем работу.")
+              context.close()
+              return
+            profile_elems[profile_num].click()
+      except Exception as e:
+        print(f"\nОШИБКА верхнего уровня: {e}\nНужно будет заново выбрать профиль.\n")
+        print(
+            "Перезапускаем скрипт... (данные processed_sellers и main_links в памяти сохраняются)\n")
+        is_retry = False
+        # Если хотите, можно сделать sys.exit(1) или return,
+        # но здесь оставлен перезапуск по требованию:
+        continue
+
+      try:
+          # -----------------------------------------
+          # Главный цикл рассылки (пока не дошли до messages_count)
+          # -----------------------------------------
+          while sent_messages < messages_count:
+            # 1) Проверяем, надо ли собирать новые ссылки
+            # если основной файл пуст или
+            # если current_link совпадает с последней ссылкой в main_links
             try:
-              page.goto(start_url, timeout=60000, wait_until="domcontentloaded")
-              random_sleep(10, 20)
-            except:
-              print(
-                  "Не удалось загрузить стартовую страницу для сбора ссылок. Пропускаем.")
-              break
+              with open(CURRENT_LINK_FILE, 'r', encoding='utf-8') as cf:
+                current_link = cf.read().strip()  # Убираем лишние пробелы/переносы строк
+            except FileNotFoundError:
+              current_link = None  # Если файла нет, переменная остаётся пустой
 
-            # Собираем уже имеющиеся ссылки в множество (для уникальности)
-            existing_links = set(main_links)
-            # Запускаем «бесконечную» прокрутку
-            new_links = infinite_scroll_with_next(page, existing_links,
-                                                  max_links=max_links)
-            if new_links:
-              random_sleep(10, 20)
-              # Дописываем их в основной файл
-              with open(MAIN_FILE, 'a', encoding='utf-8') as f:
-                for link in new_links:
-                  f.write(link + "\n")
-              # И в наш список (чтобы в этой сессии скрипт знал об этих ссылках)
-              main_links.extend(new_links)
-              print(f"Добавлено {len(new_links)} новых ссылок в основной файл.")
+            need_collect = False
+            if len(main_links) == 0:
+              need_collect = True
             else:
-              print("Новых ссылок не найдено. Возможно, ничего больше нет.")
-              # Если даже новых нет, прерываемся
-              if not main_links:
-                # Если в итоге всё равно пусто, выходим
-                print("Основной файл остался пустым. Останавливаем скрипт.")
-                break
+              last_in_main = main_links[-1]
+              if current_link and (current_link == last_in_main):
+                need_collect = True
 
-          # 2) Перебираем ссылки из main_links, начиная с той, что идёт после current_link
-          start_index = 0
-          if current_link in main_links:
-            idx = main_links.index(current_link)
-            start_index = idx + 1
-
-          # Если current_link нет или не нашли, то start_index = 0 (с начала)
-          for i in range(start_index, len(main_links)):
-            ad_url = main_links[i]
-            if sent_messages >= messages_count:
-              break
-
-            # Запишем в файл текущую ссылку
-            with open(CURRENT_LINK_FILE, 'w', encoding='utf-8') as cf:
-              cf.write(ad_url)
-
-            # Пытаемся открыть объявление
-            print(f"\n>>> Переход к объявлению: {ad_url}")
-            loaded_ok = False
-            for attempt_ad in range(3):
-              try:
-                page.goto(ad_url, timeout=60000, wait_until="domcontentloaded")
-                random_sleep(3, 5)
-                loaded_ok = True
-                break
-              except TimeoutError:
-                print(
-                    f"Не удалось загрузить объявление (попытка {attempt_ad + 1}/3). Обновляем.")
-                click_avito_logo(page)
-                random_sleep(3, 5)
-            if not loaded_ok:
-              print("Пропускаем это объявление из-за ошибок загрузки.")
-              continue
-
-            # Извлекаем ID продавца
-            seller_id = None
-            for attempt_seller in range(3):
-              # Пытаемся найти элемент с именем продавца
-              seller_element = None
-              try:
-                # seller_element = page.wait_for_selector('.style-sticky-header-seller-text-mVIXS', timeout=5000)
-                seller_element = page.query_selector(
-                    '[data-marker="seller-link/link"]')
-              except:
-                pass
-
-              if seller_element:
-                seller_text = seller_element.get_attribute('href')
-                # Если имя скрыто троеточием
-                # if seller_text == '...':
-                #     # На последней попытке берём из title
-                #     if attempt_seller == 2:
-                #         seller_id = seller_element.get_attribute('title').strip()
-                #         break
-                #     # Прокручиваем и пробуем снова
-                #     page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                #     random_sleep(3, 5)
-                #     continue
-
-                # Если имя нормальное
-                seller_id = seller_text
-                break
-              else:
-                # Если элемент не найден - прокручиваем
-                page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                random_sleep(3, 5)
-
-            if not seller_id:
-              print("Продавец не найден. Пропускаем объявление.")
-              continue
-
-            # Проверяем, не отправляли ли уже этому продавцу
-            if seller_id in processed_sellers:
+            if need_collect:
               print(
-                  f"Продавцу «{seller_id}» уже отправляли сообщение. Пропускаем.")
-              continue
+                  "\n--- Сбор новых ссылок, так как достигнут конец основного файла (или он пуст). ---")
+              # Переходим на start_url (на всякий случай)
+              try:
+                page.goto(start_url, timeout=60000, wait_until="domcontentloaded")
+                random_sleep(10, 20)
+              except:
+                print(
+                    "Не удалось загрузить стартовую страницу для сбора ссылок. Пропускаем.")
+                break
 
-            # Проверяем просмотры (если задан min_views)
-            if min_views > 0:
-              views_number = None
-              for attempt_view in range(3):
-                try:
-                  views_el = page.wait_for_selector(
-                      '[data-marker="item-view/total-views"]', timeout=5000)
-                  random_sleep(5, 7)
-                  views_text = views_el.inner_text()
-                  match = re.search(r'(\d+)', views_text)
-                  views_number = int(match.group(1)) if match else 0
+              # Собираем уже имеющиеся ссылки в множество (для уникальности)
+              existing_links = set(main_links)
+              # Запускаем «бесконечную» прокрутку
+              new_links = infinite_scroll_with_next(page, existing_links,
+                                                    max_links=max_links)
+              if new_links:
+                random_sleep(10, 20)
+                # Дописываем их в основной файл
+                with open(MAIN_FILE, 'a', encoding='utf-8') as f:
+                  for link in new_links:
+                    f.write(link + "\n")
+                # И в наш список (чтобы в этой сессии скрипт знал об этих ссылках)
+                main_links.extend(new_links)
+                print(f"Добавлено {len(new_links)} новых ссылок в основной файл.")
+              else:
+                print("Новых ссылок не найдено. Возможно, ничего больше нет.")
+                # Если даже новых нет, прерываемся
+                if not main_links:
+                  # Если в итоге всё равно пусто, выходим
+                  print("Основной файл остался пустым. Останавливаем скрипт.")
                   break
-                except:
+
+            # 2) Перебираем ссылки из main_links, начиная с той, что идёт после current_link
+            start_index = 0
+            if current_link in main_links:
+              idx = main_links.index(current_link)
+              start_index = idx + 1
+
+            # Если current_link нет или не нашли, то start_index = 0 (с начала)
+            for i in range(start_index, len(main_links)):
+              ad_url = main_links[i]
+              if sent_messages >= messages_count:
+                break
+
+              # Запишем в файл текущую ссылку
+              with open(CURRENT_LINK_FILE, 'w', encoding='utf-8') as cf:
+                cf.write(ad_url)
+
+              # Пытаемся открыть объявление
+              print(f"\n>>> Переход к объявлению: {ad_url}")
+              loaded_ok = False
+              for attempt_ad in range(3):
+                try:
+                  page.goto(ad_url, timeout=60000, wait_until="domcontentloaded")
+                  random_sleep(3, 5)
+                  loaded_ok = True
+                  break
+                except TimeoutError:
                   print(
-                      f"Просмотры не найдены (попытка {attempt_view + 1}). Обновляем.")
+                      f"Не удалось загрузить объявление (попытка {attempt_ad + 1}/3). Обновляем.")
+                  click_avito_logo(page)
+                  random_sleep(3, 5)
+              if not loaded_ok:
+                print("Пропускаем это объявление из-за ошибок загрузки.")
+                continue
+
+              # Извлекаем ID продавца
+              seller_id = None
+              for attempt_seller in range(3):
+                # Пытаемся найти элемент с именем продавца
+                seller_element = None
+                try:
+                  # seller_element = page.wait_for_selector('.style-sticky-header-seller-text-mVIXS', timeout=5000)
+                  seller_element = page.query_selector(
+                      '[data-marker="seller-link/link"]')
+                except:
+                  pass
+
+                if seller_element:
+                  seller_text = seller_element.get_attribute('href')
+                  # Если имя скрыто троеточием
+                  # if seller_text == '...':
+                  #     # На последней попытке берём из title
+                  #     if attempt_seller == 2:
+                  #         seller_id = seller_element.get_attribute('title').strip()
+                  #         break
+                  #     # Прокручиваем и пробуем снова
+                  #     page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                  #     random_sleep(3, 5)
+                  #     continue
+
+                  # Если имя нормальное
+                  seller_id = seller_text
+                  break
+                else:
+                  # Если элемент не найден - прокручиваем
+                  page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                  random_sleep(3, 5)
+
+              if not seller_id:
+                print("Продавец не найден. Пропускаем объявление.")
+                continue
+
+              # Проверяем, не отправляли ли уже этому продавцу
+              if seller_id in processed_sellers:
+                print(
+                    f"Продавцу «{seller_id}» уже отправляли сообщение. Пропускаем.")
+                continue
+
+              # Проверяем просмотры (если задан min_views)
+              if min_views > 0:
+                views_number = None
+                for attempt_view in range(3):
+                  try:
+                    views_el = page.wait_for_selector(
+                        '[data-marker="item-view/total-views"]', timeout=5000)
+                    random_sleep(5, 7)
+                    views_text = views_el.inner_text()
+                    match = re.search(r'(\d+)', views_text)
+                    views_number = int(match.group(1)) if match else 0
+                    break
+                  except:
+                    print(
+                        f"Просмотры не найдены (попытка {attempt_view + 1}). Обновляем.")
+                    click_avito_logo(page)
+                    try:
+                      page.goto(ad_url, timeout=60000,
+                                wait_until="domcontentloaded")
+                      random_sleep(2, 4)
+                    except:
+                      pass
+                if views_number is None:
+                  print("Не удалось получить число просмотров, пропускаем.")
+                  continue
+                if views_number < min_views:
+                  print(
+                      f"Просмотров ({views_number}) меньше, чем {min_views}. Пропускаем.")
+                  continue
+                print(f"Просмотры: {views_number}")
+
+              # Ищем кнопку «Написать»
+              write_btn = None
+              for attempt_btn in range(3):
+                # Прокрутим вниз, вдруг кнопка не видна
+                page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                random_sleep(5, 7)
+                write_btn = page.query_selector(
+                    '[data-marker="messenger-button/button"]')
+                if write_btn:
+                  break
+                else:
+                  print(
+                      f"Кнопка 'Написать' не найдена (попытка {attempt_btn + 1}). Обновляем.")
                   click_avito_logo(page)
                   try:
                     page.goto(ad_url, timeout=60000,
                               wait_until="domcontentloaded")
-                    random_sleep(2, 4)
+                    random_sleep(5, 7)
                   except:
                     pass
-              if views_number is None:
-                print("Не удалось получить число просмотров, пропускаем.")
+              if not write_btn:
+                print("Кнопка 'Написать' не найдена. Пропускаем объявление.")
                 continue
-              if views_number < min_views:
-                print(
-                    f"Просмотров ({views_number}) меньше, чем {min_views}. Пропускаем.")
-                continue
-              print(f"Просмотры: {views_number}")
 
-            # Ищем кнопку «Написать»
-            write_btn = None
-            for attempt_btn in range(3):
-              # Прокрутим вниз, вдруг кнопка не видна
-              page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-              random_sleep(5, 7)
-              write_btn = page.query_selector(
-                  '[data-marker="messenger-button/button"]')
-              if write_btn:
-                break
-              else:
-                print(
-                    f"Кнопка 'Написать' не найдена (попытка {attempt_btn + 1}). Обновляем.")
-                click_avito_logo(page)
-                try:
-                  page.goto(ad_url, timeout=60000,
-                            wait_until="domcontentloaded")
-                  random_sleep(5, 7)
-                except:
-                  pass
-            if not write_btn:
-              print("Кнопка 'Написать' не найдена. Пропускаем объявление.")
-              continue
+              write_btn.click(force=True)
+              random_sleep(3, 5)
 
-            write_btn.click(force=True)
-            random_sleep(3, 5)
-
-            # Переход к форме отправки сообщений
-            # (Дождёмся элемента, который переключает в мини-мессенджер)
-            try:
-              page.wait_for_selector(
-                  '[data-marker="mini-messenger/messenger-page-link"]',
-                  timeout=9000)
-              button = page.query_selector(
-                  '[data-marker="mini-messenger/messenger-page-link"]')
-              if button:
-                button.click(force=True)
-                random_sleep(5, 7)
-            except:
-              print(
-                  "Элемент перехода в мини-мессенджер не найден. Пробуем обновить страницу.")
-              click_avito_logo(page)
+              # Переход к форме отправки сообщений
+              # (Дождёмся элемента, который переключает в мини-мессенджер)
               try:
-                page.goto(ad_url, timeout=60000, wait_until='domcontentloaded')
-                random_sleep(2, 4)
-                wb2 = page.query_selector(
-                    '[data-marker="messenger-button/button"]')
-                if wb2:
-                  wb2.click(force=True)
-                  random_sleep(2, 3)
                 page.wait_for_selector(
                     '[data-marker="mini-messenger/messenger-page-link"]',
-                    timeout=5000)
+                    timeout=9000)
                 button = page.query_selector(
                     '[data-marker="mini-messenger/messenger-page-link"]')
                 if button:
                   button.click(force=True)
-                  random_sleep(2, 3)
-              except:
-                print(
-                    "Так и не смогли найти переход в мессенджер. Пропускаем объявление.")
-                continue
-
-            # Теперь ищем textarea
-            text_area = None
-            for attempt_ta in range(3):
-              try:
-                text_area = page.wait_for_selector(
-                    'textarea[data-marker="reply/input"]', timeout=9000)
-                if text_area:
-                  break
-              except:
-                pass
-              print(
-                  f"Поле ввода не найдено (попытка {attempt_ta + 1}). Обновляем.")
-              click_avito_logo(page)
-              try:
-                page.goto(ad_url, timeout=60000, wait_until='domcontentloaded')
-                random_sleep(5, 7)
-                wbtn = page.query_selector(
-                    '[data-marker="messenger-button/button"]')
-                if wbtn:
-                  wbtn.click()
                   random_sleep(5, 7)
               except:
-                pass
-            if not text_area:
-              print("Нет поля ввода сообщения. Пропускаем объявление.")
-              continue
+                print(
+                    "Элемент перехода в мини-мессенджер не найден. Пробуем обновить страницу.")
+                click_avito_logo(page)
+                try:
+                  page.goto(ad_url, timeout=60000, wait_until='domcontentloaded')
+                  random_sleep(2, 4)
+                  wb2 = page.query_selector(
+                      '[data-marker="messenger-button/button"]')
+                  if wb2:
+                    wb2.click(force=True)
+                    random_sleep(2, 3)
+                  page.wait_for_selector(
+                      '[data-marker="mini-messenger/messenger-page-link"]',
+                      timeout=5000)
+                  button = page.query_selector(
+                      '[data-marker="mini-messenger/messenger-page-link"]')
+                  if button:
+                    button.click(force=True)
+                    random_sleep(2, 3)
+                except:
+                  print(
+                      "Так и не смогли найти переход в мессенджер. Пропускаем объявление.")
+                  continue
 
-            # Формируем итоговое сообщение (с заменой синонимов и переводом \n)
-            final_text = unique_message(original_message,
-                                        synonyms_dict).replace('\\n', '\n')
-            print(f"Собираюсь отправить сообщение:\n{final_text}\n")
-            text_area.fill(final_text)
-            random_sleep(1, 2)
+              # Теперь ищем textarea
+              text_area = None
+              for attempt_ta in range(3):
+                try:
+                  text_area = page.wait_for_selector(
+                      'textarea[data-marker="reply/input"]', timeout=9000)
+                  if text_area:
+                    break
+                except:
+                  pass
+                print(
+                    f"Поле ввода не найдено (попытка {attempt_ta + 1}). Обновляем.")
+                click_avito_logo(page)
+                try:
+                  page.goto(ad_url, timeout=60000, wait_until='domcontentloaded')
+                  random_sleep(5, 7)
+                  wbtn = page.query_selector(
+                      '[data-marker="messenger-button/button"]')
+                  if wbtn:
+                    wbtn.click()
+                    random_sleep(5, 7)
+                except:
+                  pass
+              if not text_area:
+                print("Нет поля ввода сообщения. Пропускаем объявление.")
+                continue
 
-            # Отправляем
-            try:
-              send_btn = page.wait_for_selector('[data-marker="reply/send"]',
-                                                timeout=5000)
-              random_sleep(5, 7)
-              send_btn.click(force=True)
-              random_sleep(2, 3)
-              sent_messages += 1
-              processed_sellers.add(seller_id)
-              # Запишем seller_id в файл
-              with open(SELLER_IDS_FILE, 'a', encoding='utf-8') as sf:
-                sf.write(seller_id + "\n")
-              print(
-                  f"Сообщение отправлено продавцу «{seller_id}». (всего отправлено {sent_messages})")
-            except:
-              print("Кнопка 'Отправить' не найдена. Пропускаем объявление.")
+              # Формируем итоговое сообщение (с заменой синонимов и переводом \n)
+              final_text = unique_message(original_message,
+                                          synonyms_dict).replace('\\n', '\n')
+              print(f"Собираюсь отправить сообщение:\n{final_text}\n")
+              text_area.fill(final_text)
+              random_sleep(1, 2)
 
-            # Если достигли лимит — выходим
+              # Отправляем
+              try:
+                send_btn = page.wait_for_selector('[data-marker="reply/send"]',
+                                                  timeout=5000)
+                random_sleep(5, 7)
+                send_btn.click(force=True)
+                random_sleep(2, 3)
+                sent_messages += 1
+                processed_sellers.add(seller_id)
+                # Запишем seller_id в файл
+                with open(SELLER_IDS_FILE, 'a', encoding='utf-8') as sf:
+                  sf.write(seller_id + "\n")
+                print(
+                    f"Сообщение отправлено продавцу «{seller_id}». (всего отправлено {sent_messages})")
+              except:
+                print("Кнопка 'Отправить' не найдена. Пропускаем объявление.")
+
+              # Если достигли лимит — выходим
+              if sent_messages >= messages_count:
+                break
+              print("Задержка 20 минут")
+              wait_for_unexisting_element(page, 20)
+              # random_sleep(1800, 2400)
+
+            # Проверяем лимит
             if sent_messages >= messages_count:
+              print(f"\nЛимит в {messages_count} сообщений достигнут.")
               break
-            print("Задержка 20 минут")
-            wait_for_unexisting_element(page, 20)
-            # random_sleep(1800, 2400)
 
-          # Проверяем лимит
-          if sent_messages >= messages_count:
-            print(f"\nЛимит в {messages_count} сообщений достигнут.")
-            break
+            # print("Задержка 5-15 минут")
+            # random_sleep(300, 900)
 
-          # print("Задержка 5-15 минут")
-          # random_sleep(300, 900)
+          print(
+              f"\nГотово! Всего отправлено {sent_messages} (из {messages_count}).")
+          context.close()
+          break  # Выходим из внешнего цикла
 
+      except Exception as e:
+        print(f"\nОШИБКА верхнего уровня: {e}")
         print(
-            f"\nГотово! Всего отправлено {sent_messages} (из {messages_count}).")
-        context.close()
-        break  # Выходим из внешнего цикла
-
-    except Exception as e:
-      print(f"\nОШИБКА верхнего уровня: {e}")
-      print(
-          "Перезапускаем скрипт... (данные processed_sellers и main_links в памяти сохраняются)\n")
-      is_retry = True
-      # Если хотите, можно сделать sys.exit(1) или return,
-      # но здесь оставлен перезапуск по требованию:
-      continue
+            "Перезапускаем скрипт... (данные processed_sellers и main_links в памяти сохраняются)\n")
+        is_retry = True
+        # Если хотите, можно сделать sys.exit(1) или return,
+        # но здесь оставлен перезапуск по требованию:
+        continue
 
 
 # --------------------- ЗАПУСК ------------------------
