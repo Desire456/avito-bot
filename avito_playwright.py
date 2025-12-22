@@ -359,6 +359,7 @@ def main():
             # print('Навожу на профиль пользователя.')
             page.query_selector('[data-marker="header/username-button"]').hover()
             profile_elems = page.query_selector_all('.styles-module-image-kPriT')
+            print(f"Количество профилей: {len(profile_elems)}.")
             profile_num = int(profile_num_str)
             if profile_num < 0 or profile_num > len(profile_elems) - 1:
               print("Указан неправильный номер профиля. Прекращаем работу.")
