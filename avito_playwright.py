@@ -347,25 +347,8 @@ def main():
           random_sleep(5, 7)
           print("Элемент сообщений найден. Начинаем основную логику.\n")
 
-          # print('Навожу на профиль пользователя.')
-          page.query_selector('[data-marker="header/username-button"]').hover(force = True)
-
           if not is_retry:
-            profile_num_str = input(
-                "Введите номер профиля, с которого хотите делать рассылку (нумерация с 0: 0, 1, 2, ... или нажмите Enter, если у вас только один профиль): ") or "0"
-
-            random_sleep(1, 3)
-            print(f"Перехожу в указанный профиль: {profile_num_str}.")
-            # print('Навожу на профиль пользователя.')
-            page.query_selector('[data-marker="header/username-button"]').hover()
-            profile_elems = page.query_selector_all('.styles-module-image-kPriT')
-            print(f"Количество профилей: {len(profile_elems)}.")
-            profile_num = int(profile_num_str)
-            if profile_num < 0 or profile_num > len(profile_elems) - 1:
-              print("Указан неправильный номер профиля. Прекращаем работу.")
-              context.close()
-              return
-            profile_elems[profile_num].click()
+            input("Войдите в нужный профиль и нажмите ENTER.")
       except Exception as e:
         print(f"\nОШИБКА верхнего уровня: {e}\nНужно будет заново выбрать профиль.\n")
         print(
